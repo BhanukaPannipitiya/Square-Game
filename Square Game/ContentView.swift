@@ -1,9 +1,3 @@
-//
-//  ContentView.swift
-//  Square Game
-//
-//  Created by Bhanuka  Pannipitiya  on 2024-12-27.
-//
 
 import SwiftUI
 
