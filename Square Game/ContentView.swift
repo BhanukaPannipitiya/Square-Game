@@ -18,7 +18,7 @@ struct ContentView: View {
     @State private var isCountdownActive: Bool = false
     @State private var isGameStarted: Bool = false
 
-    let gridSize = 3 // 3x3 grid
+    let gridSize = 3 
 
     var body: some View {
         ZStack {
