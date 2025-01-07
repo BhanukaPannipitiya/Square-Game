@@ -17,8 +17,9 @@ struct ContentView: View {
     @State private var countdown: Int = 3
     @State private var isCountdownActive: Bool = false
     @State private var isGameStarted: Bool = false
+    @State private var score: Int = UserDefaults.standard.integer(forKey: "score") // Retrieve stored score
 
-    let gridSize = 3 
+    let gridSize = 3
 
     var body: some View {
         ZStack {
@@ -29,7 +30,7 @@ struct ContentView: View {
                     .padding()
 
                 HStack {
-                    ForEach(0..<5, id: \ .self) { index in
+                    ForEach(0..<5, id: \.self) { index in
                         Image(systemName: index < lifelines ? "heart.fill" : "heart")
                             .resizable()
                             .frame(width: 30, height: 30)
@@ -50,6 +51,7 @@ struct ContentView: View {
                         .padding(.bottom, 10)
                 }
 
+                // Display countdown message
                 if isCountdownActive {
                     Text("You have \(countdown) seconds to memorize the colors!")
                         .font(.headline)
@@ -57,8 +59,15 @@ struct ContentView: View {
                         .padding(.bottom, 10)
                 }
 
+                // Display score
+                Text("Score: \(score)")
+                    .font(.headline)
+                    .foregroundColor(.black)
+                    .padding(.bottom, 10)
+
                 Spacer()
 
+                // Grid content
                 if grid.isEmpty {
                     Text("Loading...")
                         .font(.headline)
@@ -66,9 +75,9 @@ struct ContentView: View {
                         .padding()
                 } else {
                     VStack(spacing: 10) {
-                        ForEach(0..<gridSize, id: \ .self) { row in
+                        ForEach(0..<gridSize, id: \.self) { row in
                             HStack(spacing: 10) {
-                                ForEach(0..<gridSize, id: \ .self) { col in
+                                ForEach(0..<gridSize, id: \.self) { col in
                                     let tile = grid[row][col]
                                     Button(action: {
                                         tileTapped(row: row, col: col)
@@ -88,6 +97,7 @@ struct ContentView: View {
 
                 Spacer()
 
+                // Game control buttons
                 if !isGameStarted {
                     Button("Start Game") {
                         startGameWithCountdown()
@@ -140,7 +150,7 @@ struct ContentView: View {
                 Tile(color: allColors[row * gridSize + col])
             }
         }
-
+        score = 0
         lifelines = 5
         matchedPairs = 0
         firstSelection = nil
@@ -188,6 +198,8 @@ struct ContentView: View {
                 grid[first.row][first.col].isMatched = true
                 grid[row][col].isMatched = true
                 matchedPairs += 1 // Increment matched pairs counter
+                score += 10 // Increase score when a pair is matched
+                UserDefaults.standard.set(score, forKey: "score") // Save score to UserDefaults
                 checkGameOver()
             } else {
                 // Not matched
@@ -211,6 +223,7 @@ struct ContentView: View {
     func checkGameOver() {
         let pairCount = (gridSize * gridSize - 1) / 2
         if matchedPairs == pairCount {
+            updateHighScores()
             showAlert(message: "Congratulations!")
         }
     }
@@ -225,6 +238,21 @@ struct ContentView: View {
               green: Double.random(in: 0...1),
               blue: Double.random(in: 0...1))
     }
+    
+    func updateHighScores() {
+        var highScores = UserDefaults.standard.array(forKey: "highScores") as? [Int] ?? []
+
+        // Add the new score to the high scores array
+        highScores.append(score)
+
+        // Sort the array in descending order and take only the top 5 scores
+        highScores.sort(by: >)
+        highScores = Array(highScores.prefix(5))
+
+        // Save the updated high scores list back to UserDefaults
+        UserDefaults.standard.set(highScores, forKey: "highScores")
+    }
+
 }
 
 #Preview {
