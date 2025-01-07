@@ -11,6 +11,18 @@ struct HomePage: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
+                VStack {
+                    Text("Color Matching Game")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.black)
+                                    
+                    Image("1024")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 150, height: 150)
+                    .padding(.bottom,90)
+                                }
                 NavigationLink(destination: ContentView()) {
                     Text("Start Game")
                         .font(.headline)
