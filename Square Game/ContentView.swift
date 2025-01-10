@@ -251,6 +251,9 @@ struct ContentView: View {
 
         // Save the updated high scores list back to UserDefaults
         UserDefaults.standard.set(highScores, forKey: "highScores")
+        
+        
+        print("Updated High Scores: \(highScores)")
     }
 
 }
