@@ -2,14 +2,13 @@
 //  HighScoresUI.swift
 //  Square Game
 //
-//  Created by Bhanuka  Pannipitiya  on 2025-01-05.
+//  Created by Bhanuka Pannipitiya on 2025-01-05.
 //
 
 import SwiftUI
 
 struct HighScoresUI: View {
-    // Retrieve high scores from UserDefaults
-    @State private var highScores: [Int] = UserDefaults.standard.array(forKey: "highScores") as? [Int] ?? []
+    @State private var highScores: [Int] = []
 
     var body: some View {
         VStack {
@@ -17,7 +16,6 @@ struct HighScoresUI: View {
                 .font(.largeTitle)
                 .padding()
 
-            // Display the top 5 scores
             if highScores.isEmpty {
                 Text("No high scores yet")
                     .font(.headline)
@@ -32,10 +30,17 @@ struct HighScoresUI: View {
         .padding()
         .background(Color.primary.colorInvert().opacity(0.75))
         .cornerRadius(10)
+        .onAppear {
+            loadHighScores()
+        }
+    }
+
+    func loadHighScores() {
+        highScores = UserDefaults.standard.array(forKey: "highScores") as? [Int] ?? []
+        print("Updated High Scores: \(highScores)")
     }
 }
 
 #Preview {
     HighScoresUI()
 }
-

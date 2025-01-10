@@ -137,14 +137,12 @@ struct ContentView: View {
     }
 
     func setupGame() {
-        let pairCount = (gridSize * gridSize - 1) / 2 // Number of pairs (4 pairs for 3x3 grid)
+        let pairCount = (gridSize * gridSize - 1) / 2
         let colors = (0..<pairCount).map { _ in randomColor() }
         var allColors = (colors + colors).shuffled()
 
-        // Add one extra tile as a "neutral" tile
         allColors.append(randomColor())
 
-        // Populate the grid with shuffled colors
         grid = (0..<gridSize).map { row in
             (0..<gridSize).map { col in
                 Tile(color: allColors[row * gridSize + col])
@@ -157,6 +155,7 @@ struct ContentView: View {
         lostLifeMessage = ""
         isGameStarted = false
     }
+
 
     func startGameWithCountdown() {
         isCountdownActive = true
@@ -188,45 +187,46 @@ struct ContentView: View {
     }
 
     func tileTapped(row: Int, col: Int) {
-        // Reveal the tile
         grid[row][col].isRevealed = true
 
         if let first = firstSelection {
-            // Check if the second selection matches the first
             if grid[first.row][first.col].color == grid[row][col].color {
-                // Matched
                 grid[first.row][first.col].isMatched = true
                 grid[row][col].isMatched = true
-                matchedPairs += 1 // Increment matched pairs counter
-                score += 10 // Increase score when a pair is matched
-                UserDefaults.standard.set(score, forKey: "score") // Save score to UserDefaults
+                matchedPairs += 1
+                score += 10 // Reward for a correct match
+                UserDefaults.standard.set(score, forKey: "score")
                 checkGameOver()
             } else {
-                // Not matched
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     grid[first.row][first.col].isRevealed = false
                     grid[row][col].isRevealed = false
                 }
                 lifelines -= 1
+                score -= 5 // Penalty for an incorrect match
                 lostLifeMessage = "You lost one life!"
                 if lifelines == 0 {
-                    showAlert(message: "Game Over!")
+                    showAlert(message: "Game Over! Final Score: \(score)")
                 }
             }
             firstSelection = nil
         } else {
-            // Store the first selection
             firstSelection = (row, col)
         }
     }
 
+
     func checkGameOver() {
         let pairCount = (gridSize * gridSize - 1) / 2
         if matchedPairs == pairCount {
+            // Add bonus points for remaining lives
+            score += lifelines * 20
+            UserDefaults.standard.set(score, forKey: "score")
             updateHighScores()
-            showAlert(message: "Congratulations!")
+            showAlert(message: "Congratulations! Final Score: \(score)")
         }
     }
+
 
     func showAlert(message: String) {
         alertMessage = message
