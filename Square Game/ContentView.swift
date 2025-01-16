@@ -18,6 +18,8 @@ struct ContentView: View {
     @State private var isCountdownActive: Bool = false
     @State private var isGameStarted: Bool = false
     @State private var score: Int = UserDefaults.standard.integer(forKey: "score") // Retrieve stored score
+    @State private var timerValue: Int = 0
+    @State private var timer: Timer?
 
     let gridSize = 3
 
@@ -28,6 +30,14 @@ struct ContentView: View {
                     .font(.system(size: 32, weight: .bold, design:.monospaced))
                     .foregroundColor(.black)
                     .padding()
+
+                // Display Timer
+                if isGameStarted {
+                    Text("Time: \(timerValue) sec")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                        .padding(.bottom, 10)
+                }
 
                 HStack {
                     ForEach(0..<5, id: \.self) { index in
@@ -51,7 +61,6 @@ struct ContentView: View {
                         .padding(.bottom, 10)
                 }
 
-                // Display countdown message
                 if isCountdownActive {
                     Text("You have \(countdown) seconds to memorize the colors!")
                         .font(.headline)
@@ -59,7 +68,6 @@ struct ContentView: View {
                         .padding(.bottom, 10)
                 }
 
-                // Display score
                 Text("Score: \(score)")
                     .font(.headline)
                     .foregroundColor(.black)
@@ -67,7 +75,6 @@ struct ContentView: View {
 
                 Spacer()
 
-                // Grid content
                 if grid.isEmpty {
                     Text("Loading...")
                         .font(.headline)
@@ -97,7 +104,6 @@ struct ContentView: View {
 
                 Spacer()
 
-                // Game control buttons
                 if !isGameStarted {
                     Button("Start Game") {
                         startGameWithCountdown()
@@ -121,47 +127,42 @@ struct ContentView: View {
                 }
             }
         }
-        .background(Color.primary
-            .colorInvert()
-            .opacity(0.75))
+        .background(Color.primary.colorInvert().opacity(0.75))
         .onAppear {
             setupGame()
         }
         .alert(isPresented: $showAlert) {
-            Alert(
-                title: Text(alertMessage),
-                message: Text(alertMessage == "Congratulations!" ? "You matched all the colors!" : "Game Over!"),
-                dismissButton: .default(Text("OK"))
-            )
+            Alert(title: Text(alertMessage), message: Text(alertMessage.contains("Congratulations") ? "You matched all the colors!" : "Game Over!"), dismissButton: .default(Text("OK")))
         }
     }
 
     func setupGame() {
         let pairCount = (gridSize * gridSize - 1) / 2
-        let colors = (0..<pairCount).map { _ in randomColor() }
-        var allColors = (colors + colors).shuffled()
-
-        allColors.append(randomColor())
+        var colors = (0..<pairCount).map { _ in randomColor() }
+        colors += colors
+        colors.append(randomColor())
+        colors.shuffle()
 
         grid = (0..<gridSize).map { row in
             (0..<gridSize).map { col in
-                Tile(color: allColors[row * gridSize + col])
+                Tile(color: colors[row * gridSize + col])
             }
         }
+
         score = 0
         lifelines = 5
         matchedPairs = 0
         firstSelection = nil
         lostLifeMessage = ""
         isGameStarted = false
+        timerValue = 0
+        timer?.invalidate()
     }
-
 
     func startGameWithCountdown() {
         isCountdownActive = true
         isGameStarted = false
 
-        // Reveal all tiles during countdown
         for row in 0..<gridSize {
             for col in 0..<gridSize {
                 grid[row][col].isRevealed = true
@@ -174,7 +175,6 @@ struct ContentView: View {
                 countdown -= 1
             } else {
                 timer.invalidate()
-                // Hide all tiles after countdown
                 for row in 0..<gridSize {
                     for col in 0..<gridSize {
                         grid[row][col].isRevealed = false
@@ -182,11 +182,24 @@ struct ContentView: View {
                 }
                 isCountdownActive = false
                 isGameStarted = true
+                startTimer()
             }
         }
     }
 
+    func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            timerValue += 1
+        }
+    }
+
+    func stopTimer() {
+        timer?.invalidate()
+    }
+
     func tileTapped(row: Int, col: Int) {
+        guard row < gridSize, col < gridSize else { return }
+
         grid[row][col].isRevealed = true
 
         if let first = firstSelection {
@@ -194,7 +207,7 @@ struct ContentView: View {
                 grid[first.row][first.col].isMatched = true
                 grid[row][col].isMatched = true
                 matchedPairs += 1
-                score += 10 // Reward for a correct match
+                score += 10
                 UserDefaults.standard.set(score, forKey: "score")
                 checkGameOver()
             } else {
@@ -203,7 +216,7 @@ struct ContentView: View {
                     grid[row][col].isRevealed = false
                 }
                 lifelines -= 1
-                score -= 5 // Penalty for an incorrect match
+                score -= 5
                 lostLifeMessage = "You lost one life!"
                 if lifelines == 0 {
                     showAlert(message: "Game Over! Final Score: \(score)")
@@ -215,18 +228,14 @@ struct ContentView: View {
         }
     }
 
-
     func checkGameOver() {
-        let pairCount = (gridSize * gridSize - 1) / 2
-        if matchedPairs == pairCount {
-            // Add bonus points for remaining lives
-            score += lifelines * 20
+        if matchedPairs == (gridSize * gridSize - 1) / 2 {
+            stopTimer()
+            score += max(100 - timerValue, 0) // Bonus for faster completion
             UserDefaults.standard.set(score, forKey: "score")
-            updateHighScores()
             showAlert(message: "Congratulations! Final Score: \(score)")
         }
     }
-
 
     func showAlert(message: String) {
         alertMessage = message
@@ -234,28 +243,8 @@ struct ContentView: View {
     }
 
     func randomColor() -> Color {
-        Color(red: Double.random(in: 0...1),
-              green: Double.random(in: 0...1),
-              blue: Double.random(in: 0...1))
+        Color(red: Double.random(in: 0...1), green: Double.random(in: 0...1), blue: Double.random(in: 0...1))
     }
-    
-    func updateHighScores() {
-        var highScores = UserDefaults.standard.array(forKey: "highScores") as? [Int] ?? []
-
-        // Add the new score to the high scores array
-        highScores.append(score)
-
-        // Sort the array in descending order and take only the top 5 scores
-        highScores.sort(by: >)
-        highScores = Array(highScores.prefix(5))
-
-        // Save the updated high scores list back to UserDefaults
-        UserDefaults.standard.set(highScores, forKey: "highScores")
-        
-        
-        print("Updated High Scores: \(highScores)")
-    }
-
 }
 
 #Preview {
