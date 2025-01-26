@@ -1,14 +1,8 @@
-//
-//  HighScoresUI.swift
-//  Square Game
-//
-//  Created by Bhanuka Pannipitiya on 2025-01-05.
-//
-
 import SwiftUI
+import Foundation
 
 struct HighScoresUI: View {
-    @State private var highScores: [Int] = []
+    @State private var highScores: [HighScore] = []
 
     var body: some View {
         VStack {
@@ -21,9 +15,14 @@ struct HighScoresUI: View {
                     .font(.headline)
                     .foregroundColor(.gray)
             } else {
-                List(highScores, id: \.self) { score in
-                    Text("Score: \(score)")
-                        .font(.title2)
+                List(highScores.sorted(by: { $0.score > $1.score })) { highScore in
+                    HStack {
+                        Text(highScore.name)
+                            .font(.title2)
+                        Spacer()
+                        Text("Score: \(highScore.score)")
+                            .font(.title2)
+                    }
                 }
             }
         }
@@ -36,8 +35,10 @@ struct HighScoresUI: View {
     }
 
     func loadHighScores() {
-        highScores = UserDefaults.standard.array(forKey: "highScores") as? [Int] ?? []
-        print("Updated High Scores: \(highScores)")
+        if let data = UserDefaults.standard.data(forKey: "highScores"),
+           let savedScores = try? JSONDecoder().decode([HighScore].self, from: data) {
+            highScores = savedScores
+        }
     }
 }
 
