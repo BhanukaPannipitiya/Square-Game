@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 struct Tile {
     var color: Color
@@ -8,18 +9,21 @@ struct Tile {
 
 struct ContentView: View {
     @State private var grid: [[Tile]] = []
-    @State private var firstSelection: (row: Int, col: Int)? = nil
-    @State private var lifelines: Int = 5
-    @State private var matchedPairs: Int = 0
-    @State private var showAlert: Bool = false
-    @State private var alertMessage: String = ""
-    @State private var lostLifeMessage: String = ""
-    @State private var countdown: Int = 3
-    @State private var isCountdownActive: Bool = false
-    @State private var isGameStarted: Bool = false
-    @State private var score: Int = UserDefaults.standard.integer(forKey: "score") // Retrieve stored score
-    @State private var timerValue: Int = 0
-    @State private var timer: Timer?
+        @State private var firstSelection: (row: Int, col: Int)? = nil
+        @State private var lifelines: Int = 5
+        @State private var matchedPairs: Int = 0
+        @State private var showAlert: Bool = false
+        @State private var alertMessage: String = ""
+        @State private var lostLifeMessage: String = ""
+        @State private var countdown: Int = 3
+        @State private var isCountdownActive: Bool = false
+        @State private var isGameStarted: Bool = false
+        @State private var score: Int = 0
+        @State private var timerValue: Int = 0
+        @State private var timer: Timer?
+        @State private var playerName: String = ""
+        @State private var showNamePrompt: Bool = false
+        @State private var currentHighScore: Int = 0
 
     let gridSize = 3
 
@@ -31,7 +35,6 @@ struct ContentView: View {
                     .foregroundColor(.black)
                     .padding()
 
-                // Display Timer
                 if isGameStarted {
                     Text("Time: \(timerValue) sec")
                         .font(.headline)
@@ -130,9 +133,14 @@ struct ContentView: View {
         .background(Color.primary.colorInvert().opacity(0.75))
         .onAppear {
             setupGame()
+            loadCurrentHighScore()
         }
         .alert(isPresented: $showAlert) {
             Alert(title: Text(alertMessage), message: Text(alertMessage.contains("Congratulations") ? "You matched all the colors!" : "Game Over!"), dismissButton: .default(Text("OK")))
+        }
+        .alert("New High Score!", isPresented: $showNamePrompt) {
+                    TextField("Enter Your Name", text: $playerName)
+                    Button("Save", action: saveHighScore)
         }
     }
 
@@ -208,7 +216,6 @@ struct ContentView: View {
                 grid[row][col].isMatched = true
                 matchedPairs += 1
                 score += 10
-                UserDefaults.standard.set(score, forKey: "score")
                 checkGameOver()
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -219,7 +226,7 @@ struct ContentView: View {
                 score -= 5
                 lostLifeMessage = "You lost one life!"
                 if lifelines == 0 {
-                    showAlert(message: "Game Over! Final Score: \(score)")
+                    showGameOverAlert()
                 }
             }
             firstSelection = nil
@@ -229,12 +236,63 @@ struct ContentView: View {
     }
 
     func checkGameOver() {
-        if matchedPairs == (gridSize * gridSize - 1) / 2 {
-            stopTimer()
-            score += max(100 - timerValue, 0) // Bonus for faster completion
-            UserDefaults.standard.set(score, forKey: "score")
-            showAlert(message: "Congratulations! Final Score: \(score)")
+            if matchedPairs == (gridSize * gridSize - 1) / 2 {
+                stopTimer()
+                score += max(100 - timerValue, 0)
+                
+                if score > currentHighScore {
+                    showNamePrompt = true
+                } else {
+                    saveAnonymousScore()
+                    showGameOverAlert()
+                }
+            }
         }
+
+        func saveAnonymousScore() {
+            var highScores: [HighScore] = []
+            
+            if let data = UserDefaults.standard.data(forKey: "highScores"),
+               let savedScores = try? JSONDecoder().decode([HighScore].self, from: data) {
+                highScores = savedScores
+            }
+            
+            let anonymousScore = HighScore(name: "Anonymous", score: score)
+            highScores.append(anonymousScore)
+            
+            if let encodedData = try? JSONEncoder().encode(highScores) {
+                UserDefaults.standard.set(encodedData, forKey: "highScores")
+            }
+        }
+
+        func saveHighScore() {
+            var highScores: [HighScore] = []
+            
+            if let data = UserDefaults.standard.data(forKey: "highScores"),
+               let savedScores = try? JSONDecoder().decode([HighScore].self, from: data) {
+                highScores = savedScores
+            }
+            
+            let newHighScore = HighScore(name: playerName.isEmpty ? "Anonymous" : playerName, score: score)
+            highScores.append(newHighScore)
+            
+            // Update current high score
+            UserDefaults.standard.set(score, forKey: "currentHighScore")
+            
+            if let encodedData = try? JSONEncoder().encode(highScores) {
+                UserDefaults.standard.set(encodedData, forKey: "highScores")
+            }
+            
+            showGameOverAlert()
+        }
+
+        func loadCurrentHighScore() {
+            currentHighScore = UserDefaults.standard.integer(forKey: "currentHighScore")
+        }
+
+
+    func showGameOverAlert() {
+        showAlert(message: "Game Over! Final Score: \(score)")
     }
 
     func showAlert(message: String) {
