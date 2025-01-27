@@ -100,7 +100,6 @@ struct DifficultySelectionView: View {
             }
             .padding(.top, 50)
         }
-        .navigationTitle("Difficulty Selection")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
