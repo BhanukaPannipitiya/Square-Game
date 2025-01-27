@@ -83,7 +83,6 @@ struct HomePage: View {
                     Spacer()
                 }
             }
-            .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
