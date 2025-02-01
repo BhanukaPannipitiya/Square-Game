@@ -26,8 +26,8 @@ struct HighScoresUI: View {
                 
                 // Horizontal Difficulty Selection Picker
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing:15 ) {
-                        ForEach(Difficulty.allCases, id: \ .self) { difficulty in
+                    HStack(spacing: 15) {
+                        ForEach(Difficulty.allCases, id: \.self) { difficulty in
                             HStack {
                                 Text(difficulty.rawValue)
                                     .font(.title2.weight(.semibold))
@@ -103,6 +103,8 @@ struct HighScoresUI: View {
         if let data = UserDefaults.standard.data(forKey: highScoresKey),
            let savedScores = try? JSONDecoder().decode([HighScore].self, from: data) {
             highScores = savedScores
+        } else {
+            highScores = []
         }
     }
 }
@@ -110,4 +112,3 @@ struct HighScoresUI: View {
 #Preview {
     HighScoresUI()
 }
-
