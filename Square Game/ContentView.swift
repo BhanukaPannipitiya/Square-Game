@@ -123,7 +123,7 @@ struct ContentView: View {
                         
                         if !isGameStarted {
                             GameButton(
-                                text: timerValue == 0 ? "Play Again" : "Start Game",
+                                text:"Start Game",
                                 gradient: [.blue, .purple],
                                 action: startGameWithCountdown
                             )
@@ -257,29 +257,32 @@ struct ContentView: View {
             }
         }
 
-        func checkHighScore() {
-            let key = "highScore_\(difficulty.rawValue)"
-            let currentHigh = UserDefaults.standard.integer(forKey: key)
-            
-            if score > currentHigh {
-                showNamePrompt = true
-            } else {
-                UserDefaults.standard.set(score, forKey: key)
-            }
+    func checkHighScore() {
+        var currentHighScores = highScores(for: difficulty)
+        let maxScore = currentHighScores.max(by: { $0.score < $1.score })?.score ?? 0
+        
+        if score > maxScore {
+            showNamePrompt = true
+        } else {
+            let anonymousScore = HighScore(name: "Anonymous", score: score)
+            currentHighScores.append(anonymousScore)
+            saveHighScores(currentHighScores)
         }
+    }
 
     func saveHighScore() {
-        let key = "highScores_\(difficulty.rawValue)"
-        let newHighScore = HighScore(name: playerName, score: score)
-        
         var currentHighScores = highScores(for: difficulty)
+        let name = playerName.isEmpty ? "Anonymous" : playerName
+        let newHighScore = HighScore(name: name, score: score)
         currentHighScores.append(newHighScore)
-        
-        if let encoded = try? JSONEncoder().encode(currentHighScores) {
+        saveHighScores(currentHighScores)
+        playerName = ""
+    }
+    func saveHighScores(_ scores: [HighScore]) {
+        let key = "highScores_\(difficulty.rawValue)"
+        if let encoded = try? JSONEncoder().encode(scores) {
             UserDefaults.standard.set(encoded, forKey: key)
         }
-        
-        playerName = ""
     }
     func highScores(for difficulty: Difficulty) -> [HighScore] {
         let key = "highScores_\(difficulty.rawValue)"
